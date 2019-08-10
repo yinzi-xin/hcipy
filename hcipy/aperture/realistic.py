@@ -63,6 +63,117 @@ def make_magellan_aperture(normalized=False, with_spiders=True):
 def make_keck_aperture():
 	pass
 
+def make_gpi_aperture(normalized=False, with_spiders=True):
+	'''Make the Gemini Planet Imager aperture.
+
+	This pupil is based on the parameters provided in:
+	http://docs.planetimager.org/pipeline/gpireference/coronagraph.html
+
+	Parameters
+	----------
+	normalized : boolean
+		If this is True, the pupil diameter will be scaled to 1. Otherwise, the
+		diameter of the pupil will be 7.7701 meters.
+	with_spiders : boolean
+		Include the secondary mirror support structure in the aperture.
+	'''
+	pupil_diameter = 7.7701 # m (projected diameter of baffle on M2)
+	inner_diameter = 1.2968 # m (projected diameter of M2 inner hole)
+	spider_width = 0.01 # m (without laser launch feed)
+	spider_width_laser = 0.014 # m (with laser launch feed)
+	spider_angle = 93.8 # degrees
+	spider_offset = 0.2179 # m
+
+	if normalized:
+		inner_diameter /= pupil_diameter
+		spider_width /= pupil_diameter
+		spider_width_laser /= pupil_diameter
+		spider_offset /= pupil_diameter
+		pupil_diameter = 1
+
+	obscuration_ratio = inner_diameter / pupil_diameter
+	obstructed_aperture = make_obstructed_circular_aperture(pupil_diameter, obscuration_ratio)
+
+	if not with_spiders:
+		return obstructed_aperture
+
+	spider1 = make_spider_infinite([spider_offset, 0], spider_angle / 2, spider_width)
+	spider2 = make_spider_infinite([spider_offset, 0], -spider_angle / 2, spider_width)
+	spider3 = make_spider_infinite([-spider_offset, 0], spider_angle / 2 + 180, spider_width)
+	spider4 = make_spider_infinite([-spider_offset, 0], -spider_angle / 2 + 180, spider_width_laser)
+
+	def func(grid):
+		return obstructed_aperture(grid) * spider1(grid) * spider2(grid) * spider3(grid) * spider4(grid)
+	return func
+
+def make_gpi_lyot_stop(normalized=False, mask_name='080m12_04'):
+	'''Make the Lyot stops in the GPI instrument.
+
+	These Lyot stops are based on the parameters provided in:
+	http://docs.planetimager.org/pipeline/gpireference/coronagraph.html
+
+	.. note::
+		The dead/coupled actuators are not blocked yet, as I don't know the
+		scale of the pupil on the DM. The actuator indices themselves can be
+		found on the above website.
+
+	Parameters
+	----------
+	normalized : boolean
+		If this is True, the pupil diameter will be scaled to 1. Otherwise, the
+		diameter of the pupil will be 7.7701 meters.
+	mask_name : string
+		The mask identifier. This must be one of ['080m12_03', '080m12_03_06', '080m12_04', 
+		'080m12_04_c', '080m12_06', '080m12_06_03', '080m12_07', '080m12_10', 'blank', 'open']
+	
+	Raises
+	------
+	ValueError
+		If the mask `mask_name` is not known.
+	'''
+	pupil_diameter = 7.7701 # m (projected diameter of baffle on M2)
+	spider_angle = 93.8 # degrees
+	spider_offset = 0.2179 # m
+	
+	parameters = {
+		'080m12_03': (7.57, 2.1954, 0.24042, 0.598),
+		'080m12_03_06': (7.57, 2.1954, 0.24042, 0.835),
+		'080m12_04': (7.57, 2.1954, 0.3195, 0.677),
+		'080m12_04_c': (7.57, 2.1954, 0.47767, 0.598),
+		'080m12_06': (7.57, 2.1954, 0.47767, 0.835),
+		'080m12_06_03': (7.57, 2.1954, 0.47767, 0.835),
+		'080m12_07': (7.4118, 2.3536, 0.47767, 0.835),
+		'080m12_10': (6.9231, 2.8028, 0.79401, 1.15),
+		'blank': (0, 0, 0, 0),
+		'open': (8.0667, 0, 0, 0)
+	}
+
+	if mask_name not in parameters:
+		raise ValueError('The mask with name "%s" is not known.' % str(mask_name))
+
+	outer_diameter, inner_diameter, spider_width, bad_actuator_mask_diameter = parameters[mask_name]
+
+	if normalized:
+		outer_diameter /= pupil_diameter
+		inner_diameter /= pupil_diameter
+		spider_width /= pupil_diameter
+		bad_actuator_mask_diameter /= pupil_diameter
+		spider_offset /= pupil_diameter
+		pupil_diameter = 1
+
+	obstructed_aperture = make_obstructed_circular_aperture(outer_diameter, inner_diameter / outer_diameter)
+
+	spider1 = make_spider_infinite([spider_offset, 0], spider_angle / 2, spider_width)
+	spider2 = make_spider_infinite([spider_offset, 0], -spider_angle / 2, spider_width)
+	spider3 = make_spider_infinite([-spider_offset, 0], spider_angle / 2 + 180, spider_width)
+	spider4 = make_spider_infinite([-spider_offset, 0], -spider_angle / 2 + 180, spider_width)
+
+	# TODO FIXME Block dead/coupled actuators.
+
+	def func(grid):
+		return obstructed_aperture(grid) * spider1(grid) * spider2(grid) * spider3(grid) * spider4(grid)
+	return func
+
 def make_luvoir_a_aperture(normalized=False, with_spiders=True, with_segment_gaps=True, gap_padding=1, segment_transmissions=1, return_header=False, return_segments=False):
 	'''
 	This aperture changes frequently. This one is based on LUVOIR Apertures dimensions 
