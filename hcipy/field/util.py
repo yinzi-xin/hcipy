@@ -187,6 +187,47 @@ def make_focal_grid(q, num_airy, spatial_resolution=None, pupil_diameter=None, f
 
 	return CartesianGrid(RegularCoords(delta, dims, zero))
 
+def make_hexagonal_asa_grid(dims,col_extent,center=0,center_array=0):
+	'''Create a 2D array set addressed (ASA) hexagonal grid
+
+	Parameters
+	----------
+	dims : scalar or ndarray of dim 2
+		The number of points in the row and column dimensions. If this is a scalar, it will
+		be applied to both dimensions. The array dimension is fixed to 2.
+	extent : scalar
+		The total extent of the grid in each of the column dimension.
+		The total extent of the grid in the row dimension is fixed by dim and column dimension.
+	center : scalar or ndarray
+		The center point. The grid will by symmetric around this point.
+	center_array: scalar (0 or 1)
+		Which array has the center point.
+
+	Returns
+	-------
+	Grid
+		A :class:`Grid` with :class:`RegularCoords`.
+	'''
+
+	dims_in = (np.ones(2) * dims).astype('int')
+	dims = np.array([2,dims_in[0],dims_in[1]])
+
+	#delta in array and column are equal, delta in row is sqrt(3)*delta in array/column
+	delta_0 = col_extent / dims[2]
+	delta = np.array([delta_0,np.sqrt(3)*delta_0,delta_0])
+
+	#calculate row extent based on column extent and row dimension
+	row_extent = delta[1]*dims[1]
+
+	#calculate zero point
+	center = (np.ones(2) * center).astype('float')
+	row_zero = - row_extent / 2 + center[0] + delta[1] / 2
+	col_zero = - col_extent / 2 + center[1] + delta[2] / 2
+
+	zero = [center_array,row_zero,col_zero]
+
+	return HexagonalASAGrid(RegularCoords(delta, dims, zero))
+
 def make_hexagonal_grid(circum_diameter, n_rings, pointy_top=False, center=None):
 	'''Make a regular hexagonal grid.
 
