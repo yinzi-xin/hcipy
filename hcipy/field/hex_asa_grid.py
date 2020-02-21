@@ -38,16 +38,25 @@ def _cartesian_to_hexasa(self):
 	raise NotImplementedError()
 
 def _hexasa_to_cartesian(self):
-	# from .coordinates import UnstructuredCoords
-	# from .cartesian_grid import CartesianGrid
+	from .coordinates import UnstructuredCoords
+	from .cartesian_grid import CartesianGrid
 
-	# r = self.r
-	# theta = self.theta
-	# x = r * np.cos(theta)
-	# y = r * np.sin(theta)
-	# return CartesianGrid(UnstructuredCoords([x, y]))
+	r = self.r
+	c = self.c
 
-	raise NotImplementedError()
+	#array 0 maps directly
+	x_0 = c
+	y_0 = r
+
+	#shift array 1 accordingly
+	x_1 = c+self.coords.delta[2]/2
+	y_1 = r+self.coords.delta[1]/2
+
+	#stack all coordinates
+	x = np.hstack((x_0,x_1))
+	y = np.hstack((y_0,y_1))
+
+	return CartesianGrid(UnstructuredCoords([x, y]))
 
 Grid._add_coordinate_system('hexasa', HexagonalASAGrid)
 

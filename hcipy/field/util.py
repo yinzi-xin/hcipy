@@ -4,6 +4,7 @@ import numpy as np
 from .coordinates import RegularCoords, SeparatedCoords, UnstructuredCoords
 from .field import Field
 from .cartesian_grid import CartesianGrid
+from .hex_asa_grid import HexagonalASAGrid
 from .grid import Grid
 
 def make_uniform_grid(dims, extent, center=0, has_center=False):
